@@ -1,9 +1,10 @@
 use std::time::Instant;
 use crate::scan::scan;
 use crate::utils::version::validate_version;
-use crate::utils::loader::{get_mod_version, get_mod_id};
+use crate::utils::loader::{self, detect_mod, get_mod_id, get_mod_version};
 use crate::VERSION;
 use crate::LOGO;
+use crate::api::modrinth::download_modrinth_mod;
 pub struct ZhCnInterface;
 
 impl ZhCnInterface {
@@ -90,19 +91,60 @@ impl ZhCnInterface {
             let jar_file_path = jar_file.path();
             let mod_id = get_mod_id(&jar_file_path).ok().flatten();
             let mod_version = get_mod_version(&jar_file_path).ok().flatten();
+            let mod_loader = detect_mod(&jar_file_path).ok().flatten();
             if mod_id.is_none() && mod_version.is_none() {
                 failed_mods.push(jar_file);
             } else {
                 std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");   
                 let old_mod_id = mod_id.unwrap();
                 let old_mod_version = mod_version.unwrap();
+                let loader = mod_loader.unwrap();
+                let cache_path = std::path::Path::new("cache");
                 let time = Instant::now();
-                
-
-
                 // 下载Mod
-
-
+                match loader {
+                    loader::ModLoader::Fabric => {
+                        println!("正在下载 Fabric Mod {}-{}...", old_mod_id, old_mod_version);
+                        let result = download_modrinth_mod(&old_mod_id, &version, "fabric", cache_path);
+                        match result {
+                            Ok(path) => {
+                                println!("已经存放在 {:?}", path)
+                            },
+                            Err(error) => {
+                                print!("下载失败: {:?}", error)
+                            }
+                        }
+                    }
+                    loader::ModLoader::Forge => {
+                        println!("正在下载 Forge Mod {}-{}...", old_mod_id, old_mod_version);
+                        let result = download_modrinth_mod(&old_mod_id, &version, "forge", cache_path);
+                        match result {
+                            Ok(path) => {
+                                println!("已经存放在 {:?}", path)
+                            },
+                            Err(error) => {
+                                print!("下载失败: {:?}", error)
+                            }
+                        }
+                    }
+                    loader::ModLoader::Quilt => {
+                        println!("正在下载 Quilt Mod {}-{}...", old_mod_id, old_mod_version);
+                        let result = download_modrinth_mod(&old_mod_id, &version, "quilt", cache_path);
+                        match result {
+                            Ok(path) => {
+                                println!("已经存放在 {:?}", path)
+                            },
+                            Err(error) => {
+                                print!("下载失败: {:?}", error)
+                            }
+                        }
+                    }
+                    _ => {
+                        println!("未知的模组加载器类型: {:?}", loader);
+                        failed_mods.push(jar_file);
+                        continue;
+                    }
+                }
 
 
                 let end_time = time.elapsed();

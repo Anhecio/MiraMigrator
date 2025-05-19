@@ -1,2 +1,2 @@
-pub mod version;
 pub mod loader;
+pub mod version;

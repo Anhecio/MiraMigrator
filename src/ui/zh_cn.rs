@@ -1,10 +1,10 @@
-use std::time::Instant;
-use crate::scan::scan;
-use crate::utils::version::validate_version;
-use crate::utils::loader::{self, detect_mod, get_mod_id, get_mod_version};
-use crate::VERSION;
 use crate::LOGO;
+use crate::VERSION;
 use crate::api::modrinth::download_modrinth_mod;
+use crate::scan::scan;
+use crate::utils::loader::{self, detect_mod, get_mod_id, get_mod_version};
+use crate::utils::version::validate_version;
+use std::time::Instant;
 pub struct ZhCnInterface;
 
 impl ZhCnInterface {
@@ -12,7 +12,7 @@ impl ZhCnInterface {
         Self {}
     }
 
-    pub fn init(&self) {        
+    pub fn init(&self) {
         // 初始化
         println!("正在初始化 MiraMigrator 中...");
         scan::create_backup_folder();
@@ -48,7 +48,7 @@ impl ZhCnInterface {
             println!("未发现任何有效 Mod, 请检查 Mods 目录.");
             return;
         }
-        println!("发现 {} 个 Mod 文件, 列表如下:", jar_files.len(), );
+        println!("发现 {} 个 Mod 文件, 列表如下:", jar_files.len(),);
         for jar_file in &jar_files {
             println!(" - {}", jar_file.file_name().to_string_lossy());
         }
@@ -95,7 +95,7 @@ impl ZhCnInterface {
             if mod_id.is_none() && mod_version.is_none() {
                 failed_mods.push(jar_file);
             } else {
-                std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");   
+                std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");
                 let old_mod_id = mod_id.unwrap();
                 let old_mod_version = mod_version.unwrap();
                 let loader = mod_loader.unwrap();
@@ -106,40 +106,52 @@ impl ZhCnInterface {
                 match loader {
                     loader::ModLoader::Fabric => {
                         println!("正在下载 Fabric Mod {}...", old_mod_id);
-                        let result = download_modrinth_mod(&old_mod_id, &version, "fabric", cache_path);
+                        let result =
+                            download_modrinth_mod(&old_mod_id, &version, "fabric", cache_path);
                         match result {
                             Ok(path) => {
                                 new_mod_version = get_mod_version(&path).unwrap();
-                                println!("已经存放在 {:?}", path)
-                            },
+                            }
                             Err(error) => {
-                                print!("下载失败: {:?}", error)
+                                println!("从 Modrinth 拉取失败: {:?}", error);
+                                println!("开始尝试从 CurseForge 拉取...");
+
+                                failed_mods.push(jar_file);
+                                continue;
                             }
                         }
                     }
                     loader::ModLoader::Forge => {
                         println!("正在下载 Forge Mod {}...", old_mod_id);
-                        let result = download_modrinth_mod(&old_mod_id, &version, "forge", cache_path);
+                        let result =
+                            download_modrinth_mod(&old_mod_id, &version, "forge", cache_path);
                         match result {
                             Ok(path) => {
                                 new_mod_version = get_mod_version(&path).unwrap();
-                                println!("已经存放在 {:?}", path)
-                            },
+                            }
                             Err(error) => {
-                                print!("下载失败: {:?}", error)
+                                println!("从 Modrinth 拉取失败: {:?}", error);
+                                println!("开始尝试从 CurseForge 拉取...");
+                                
+                                failed_mods.push(jar_file);
+                                continue;
                             }
                         }
                     }
                     loader::ModLoader::Quilt => {
                         println!("正在下载 Quilt Mod {}...", old_mod_id);
-                        let result = download_modrinth_mod(&old_mod_id, &version, "quilt", cache_path);
+                        let result =
+                            download_modrinth_mod(&old_mod_id, &version, "quilt", cache_path);
                         match result {
                             Ok(path) => {
                                 new_mod_version = get_mod_version(&path).unwrap();
-                                println!("已经存放在 {:?}", path)
-                            },
+                            }
                             Err(error) => {
-                                print!("下载失败: {:?}", error)
+                                println!("从 Modrinth 拉取失败: {:?}", error);
+                                println!("开始尝试从 CurseForge 拉取...");
+                                
+                                failed_mods.push(jar_file);
+                                continue;
                             }
                         }
                     }
@@ -150,15 +162,25 @@ impl ZhCnInterface {
                     }
                 }
 
-
                 let end_time = time.elapsed();
-                println!("{}-{} => {}-{} 耗时 {:.2?}s", old_mod_id, old_mod_version, old_mod_id, new_mod_version.unwrap(), end_time.as_secs_f64());
+                println!(
+                    "{}-{} => {}-{} 耗时 {:.2?}s",
+                    old_mod_id,
+                    old_mod_version,
+                    old_mod_id,
+                    new_mod_version.unwrap(),
+                    end_time.as_secs_f64()
+                );
                 success_mods.push(jar_file);
             }
         }
         let elapsed_time = start_time.elapsed();
-        println!("版本迁移完成, 共耗时: {:.2?}s", elapsed_time.as_secs_f64());
-        println!("成功迁移 {} 个 Mod, 失败 {} 个 Mod.", success_mods.len(), failed_mods.len());
+        println!("\n版本迁移完成, 共耗时: {:.2?}s", elapsed_time.as_secs_f64());
+        println!(
+            "成功迁移 {} 个 Mod, 失败 {} 个 Mod.",
+            success_mods.len(),
+            failed_mods.len()
+        );
         if !failed_mods.is_empty() {
             println!("失败的 Mod 列表如下 (请手动迁移):");
             for jar_file in &failed_mods {

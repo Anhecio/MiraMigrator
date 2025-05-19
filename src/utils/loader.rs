@@ -52,13 +52,13 @@ pub fn detect_mod(jar_path: &Path) -> io::Result<Option<ModLoader>> {
 /// 检查类文件中的@Mod注解
 fn has_mod_annotation(zip: &mut ZipArchive<fs::File>) -> io::Result<bool> {
     let annotation_marker = b"Lnet/minecraftforge/fml/common/Mod;";
-    
+
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
         if entry.name().ends_with(".class") {
             let mut buffer = Vec::new();
             entry.read_to_end(&mut buffer)?;
-            
+
             if buffer
                 .windows(annotation_marker.len())
                 .any(|w| w == annotation_marker)
@@ -79,13 +79,11 @@ pub fn is_valid_mod(jar_file: &fs::DirEntry) -> bool {
     }
 }
 
-
 /// 获取Mod的版本
 /// 返回值为Option<String>，如果没有找到版本信息，则返回None
 pub fn get_mod_version(jar_path: &Path) -> io::Result<Option<String>> {
     let file = fs::File::open(jar_path)?;
     let mut zip = ZipArchive::new(file)?;
-
 
     for i in 0..zip.len() {
         let mut entry = zip.by_index(i)?;
@@ -107,7 +105,8 @@ pub fn get_mod_version(jar_path: &Path) -> io::Result<Option<String>> {
                 if let Ok(toml) = contents.parse::<toml::Value>() {
                     if let Some(mods) = toml.get("mods").and_then(|m| m.as_array()) {
                         if let Some(first_mod) = mods.get(0) {
-                            if let Some(version) = first_mod.get("version").and_then(|v| v.as_str()) {
+                            if let Some(version) = first_mod.get("version").and_then(|v| v.as_str())
+                            {
                                 return Ok(Some(version.to_string()));
                             }
                         }
@@ -131,7 +130,11 @@ pub fn get_mod_version(jar_path: &Path) -> io::Result<Option<String>> {
                 let mut contents = String::new();
                 entry.read_to_string(&mut contents)?;
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
-                    if let Some(version) = json.get("quilt_loader").and_then(|ql| ql.get("version")).and_then(|v| v.as_str()) {
+                    if let Some(version) = json
+                        .get("quilt_loader")
+                        .and_then(|ql| ql.get("version"))
+                        .and_then(|v| v.as_str())
+                    {
                         return Ok(Some(version.to_string()));
                     }
                 }

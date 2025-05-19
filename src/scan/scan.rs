@@ -1,14 +1,14 @@
-use std::path::Path;
-use std::fs;
 use crate::utils::loader::is_valid_mod;
+use std::fs;
+use std::path::Path;
 
 /// 判断模组备份/缓存文件夹是否存在
 /// 不存在则创建
 pub fn create_backup_folder() {
-    if!Path::new("backup").exists() {
+    if !Path::new("backup").exists() {
         fs::create_dir("backup").unwrap();
     }
-    if!Path::new("cache").exists() {
+    if !Path::new("cache").exists() {
         fs::create_dir("cache").unwrap();
     }
 }

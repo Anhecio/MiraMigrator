@@ -11,10 +11,10 @@ const LOGO: &str = r"
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 // mod
-mod ui;
 mod api;
-mod utils;
 mod scan;
+mod ui;
+mod utils;
 
 // use
 use ui::zh_cn::ZhCnInterface;

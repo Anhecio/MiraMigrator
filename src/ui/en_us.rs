@@ -1,4 +1,5 @@
 use super::Interface;
+use crate::CURSEFORGE_API_KEY;
 use crate::LOGO;
 use crate::VERSION;
 use crate::api::curseforge::download_curseforge_mod;
@@ -118,7 +119,7 @@ impl Interface for EnUsInterface {
                 let new_mod_version;
                 // Downloading Mod
                 // CourseForge API Key
-                let api_key = "";
+                let api_key = CURSEFORGE_API_KEY;
                 match loader {
                     loader::ModLoader::Fabric => {
                         println!("Downloading Fabric Mod {}...", old_mod_id);

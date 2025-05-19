@@ -35,20 +35,41 @@ pub fn download_curseforge_mod(
         .build()?;
 
     // 2. 验证项目存在
-    let project_url = format!("https://api.curseforge.com/v1/mods/{}", mod_id);
+    let project_url = format!("https://addons-ecs.forgesvc.net/api/v2/addon/{}", mod_id);
+    println!("Requesting mod data from: {}", project_url); // Debugging log
     let project_res = client.get(&project_url).send()?;
-    if !project_res.status().is_success() {
+
+    println!("Response Status: {}", project_res.status()); // Debugging log
+
+    let project_status = project_res.status();
+    if !project_status.is_success() {
+        let error_text = project_res.text()?;
+        println!("Error Response: {}", error_text); // Debugging log
         return Err(format!(
-            "The mod does not exist: {} {}",
-            project_res.status(),
-            project_res.text()?
+            "The mod does not exist or error occurred: {} {}",
+            project_status,
+            error_text
         )
         .into());
     }
 
     // 3. 获取兼容版本
-    let versions_url = format!("https://api.curseforge.com/v1/mods/{}/files", mod_id);
+    let versions_url = format!("https://addons-ecs.forgesvc.net/api/v2/addon/{}/files", mod_id);
+    println!("Requesting mod versions from: {}", versions_url); // Debugging log
     let versions_res = client.get(&versions_url).send()?;
+
+    let versions_status = versions_res.status();
+    println!("Response Status: {}", versions_status); // Debugging log
+    if !versions_status.is_success() {
+        let error_text = versions_res.text()?;
+        println!("Error Response: {}", error_text); // Debugging log
+        return Err(format!(
+            "Failed to get mod versions: {} {}",
+            versions_status,
+            error_text
+        )
+        .into());
+    }
 
     let versions_text = versions_res.text()?;
     let versions: Vec<Value> = serde_json::from_str(&versions_text).map_err(|e| {
@@ -60,6 +81,7 @@ pub fn download_curseforge_mod(
 
     // 4. 选择与目标版本兼容的最新版本
     let version = get_latest_compatible_version(&versions, mc_version, loader)?;
+
     // 5. 获取可下载文件
     let file = version["file"]
         .as_object()
@@ -86,6 +108,7 @@ fn download_file(
     url: &str,
     path: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    println!("Downloading from URL: {}", url); // Debugging log
     let mut response = client.get(url).send()?;
     let mut file = File::create(path)?;
     std::io::copy(&mut response, &mut file)?;

@@ -9,6 +9,8 @@ const LOGO: &str = r"
 
 // MiraMigrator Version
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+// CurseForge API Key
+const CURSEFORGE_API_KEY: &str = "$2a$10$DnmspuOGwV3zj9600HbYXO9e62i9FYCpXdUez6fGvy1DeT.BqosLG";
 
 // mod
 mod api;

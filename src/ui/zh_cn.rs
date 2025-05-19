@@ -1,4 +1,5 @@
 use super::Interface;
+use crate::CURSEFORGE_API_KEY;
 use crate::LOGO;
 use crate::VERSION;
 use crate::api::curseforge::download_curseforge_mod;
@@ -98,10 +99,13 @@ impl Interface for ZhCnInterface {
             let mod_id = get_mod_id(&jar_file_path).ok().flatten();
             let mod_version = get_mod_version(&jar_file_path).ok().flatten();
             let mod_loader = detect_mod(&jar_file_path).ok().flatten();
-            if mod_id.is_none() && mod_version.is_none() {
+            if mod_id.is_none() | mod_version.is_none() {
+                println!("id {}", mod_id.is_none());
+                println!("version {}", mod_version.is_none());
+                println!("无法识别 Mod {}, 请手动迁移.", jar_file.file_name().to_string_lossy());
                 std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");
                 failed_mods.push(jar_file);
-            } else {
+            } else  {
                 std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");
                 let old_mod_id = mod_id.unwrap();
                 let old_mod_version = mod_version.unwrap();
@@ -111,7 +115,7 @@ impl Interface for ZhCnInterface {
                 let new_mod_version;
                 // 下载Mod
                 // CourseForge API Key
-                let api_key = "";
+                let api_key = CURSEFORGE_API_KEY;
                 match loader {
                     loader::ModLoader::Fabric => {
                         println!("正在下载 Fabric Mod {}...", old_mod_id);

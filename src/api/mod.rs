@@ -1,2 +1,2 @@
-pub mod courseforge;
+pub mod curseforge;
 pub mod modrinth;

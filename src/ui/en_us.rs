@@ -1,7 +1,7 @@
 use super::Interface;
 use crate::LOGO;
 use crate::VERSION;
-use crate::api::courseforge::download_curseforge_mod;
+use crate::api::curseforge::download_curseforge_mod;
 use crate::api::modrinth::download_modrinth_mod;
 use crate::scan::scan;
 use crate::utils::loader::{self, detect_mod, get_mod_id, get_mod_version};

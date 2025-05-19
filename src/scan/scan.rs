@@ -1,5 +1,6 @@
 use crate::utils::loader::is_valid_mod;
 use std::fs;
+use std::io::Result;
 use std::path::Path;
 
 /// 判断模组备份/缓存文件夹是否存在
@@ -36,4 +37,30 @@ pub fn filter_valid_mods(jar_files: Vec<fs::DirEntry>) -> Vec<fs::DirEntry> {
         }
     }
     valid_mods
+}
+
+/// 将有效的Mod文件移动到当前目录
+pub fn move_files_from_cache_to_current_dir(cache_dir: &Path) -> Result<()> {
+    // 获取当前目录路径
+    let current_dir = std::env::current_dir()?;
+
+    // 遍历 cache 目录中的所有文件
+    for entry in fs::read_dir(cache_dir)? {
+        let entry = entry?;
+        let entry_path = entry.path();
+
+        // 确保是文件而非目录
+        if entry_path.is_file() {
+            let file_name = entry_path.file_name().unwrap();
+            let destination = current_dir.join(file_name);
+
+            // 移动文件到当前目录
+            fs::rename(&entry_path, destination)?;
+        }
+    }
+
+    // 删除 cache 目录及其内容
+    fs::remove_dir_all(cache_dir)?;
+
+    Ok(())
 }

@@ -33,7 +33,7 @@ pub fn download_modrinth_mod(
     let project_res = client.get(&project_url).send()?;
     if !project_res.status().is_success() {
         return Err(format!(
-            "Mod不存在: {} {}",
+            "The mod does not exist: {} {}",
             project_res.status(),
             project_res.text()?
         )
@@ -48,16 +48,15 @@ pub fn download_modrinth_mod(
         .send()?;
 
     let versions_text = versions_res.text()?;
-    let versions: Vec<Value> = serde_json::from_str(&versions_text)
-        .map_err(|e| format!("JSON解析失败: {}\n响应内容: {}", e, versions_text))?;
+    let versions: Vec<Value> = serde_json::from_str(&versions_text).map_err(|e| {
+        format!(
+            "JSON parsing failed: {}\nResponse content: {}",
+            e, versions_text
+        )
+    })?;
 
     // 4. 选择与目标版本兼容的最新版本
     let version = get_latest_compatible_version(&versions, mc_version, loader)?;
-    let version_number = version["version_number"]
-        .as_str()
-        .unwrap_or("unknown");
-    println!("找到兼容版本: {}", version_number);
-
     // 5. 获取可下载文件
     let file = version["files"]
         .as_array()
@@ -66,10 +65,10 @@ pub fn download_modrinth_mod(
                 .iter()
                 .find(|f| f["primary"].as_bool().unwrap_or(false))
         })
-        .ok_or("找不到主文件")?;
+        .ok_or("The master file could not be found.")?;
 
     // 6. 安全下载文件
-    let download_url = file["url"].as_str().ok_or("无效下载URL")?;
+    let download_url = file["url"].as_str().ok_or("Invalid download URL")?;
     let file_name = sanitize(
         file["filename"]
             .as_str()
@@ -122,17 +121,16 @@ fn get_latest_compatible_version(
                 .as_array()
                 .cloned()
                 .unwrap_or_else(Vec::new);
-            let loaders = v["loaders"]
-                .as_array()
-                .cloned()
-                .unwrap_or_else(Vec::new);
+            let loaders = v["loaders"].as_array().cloned().unwrap_or_else(Vec::new);
             // 这里保证 mc_version 和 loader 都是 &str 类型
-            let contains_mc_version = game_versions.iter()
+            let contains_mc_version = game_versions
+                .iter()
                 .any(|v| v.as_str().unwrap_or("").trim() == mc_version.trim());
-            let contains_loader = loaders.iter()
+            let contains_loader = loaders
+                .iter()
                 .any(|v| v.as_str().unwrap_or("").trim() == loader.trim());
             contains_mc_version && contains_loader
         })
         .cloned() // 克隆出匹配的版本
-        .ok_or_else(|| "找不到兼容版本".into())
+        .ok_or_else(|| "No compatible version found.".into())
 }

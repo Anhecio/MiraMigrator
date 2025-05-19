@@ -10,6 +10,7 @@ pub enum ModLoader {
     Forge,
     Fabric,
     Quilt,
+    None,
 }
 
 /// 检测JAR文件是否为Mod并返回加载器类型
@@ -17,7 +18,7 @@ pub fn detect_mod(jar_path: &Path) -> io::Result<Option<ModLoader>> {
     let file = fs::File::open(jar_path)?;
     let mut zip = ZipArchive::new(file)?;
 
-    let mut loader = None;
+    let mut loader = Some(ModLoader::None);
 
     // 优先检查元数据文件
     for i in 0..zip.len() {

@@ -1,5 +1,7 @@
+use super::Interface;
 use crate::LOGO;
 use crate::VERSION;
+use crate::api::courseforge::download_curseforge_mod;
 use crate::api::modrinth::download_modrinth_mod;
 use crate::scan::scan;
 use crate::utils::loader::{self, detect_mod, get_mod_id, get_mod_version};
@@ -9,16 +11,18 @@ pub struct ZhCnInterface;
 
 impl ZhCnInterface {
     pub fn new() -> Self {
-        Self {}
+        ZhCnInterface
     }
+}
 
-    pub fn init(&self) {
+impl Interface for ZhCnInterface {
+    fn init(&self) {
         // 初始化
         println!("正在初始化 MiraMigrator 中...");
         scan::create_backup_folder();
         println!("MiraMigrator 初始化完毕.");
     }
-    pub fn start(&self) {
+    fn start(&self) {
         println!("{}", LOGO);
         println!("欢迎使用 MiraMigrator v{}", VERSION);
         println!("制作: 安禾辞 | QQ: 2301385546 | 交流群: 000000000");
@@ -86,6 +90,8 @@ impl ZhCnInterface {
         let mut failed_mods = Vec::new();
         // 成功的 Mod列表
         let mut success_mods = Vec::new();
+        // 缓存目录
+        let cache_path = std::path::Path::new("cache");
         let start_time = Instant::now();
         for jar_file in &jar_files {
             let jar_file_path = jar_file.path();
@@ -93,6 +99,7 @@ impl ZhCnInterface {
             let mod_version = get_mod_version(&jar_file_path).ok().flatten();
             let mod_loader = detect_mod(&jar_file_path).ok().flatten();
             if mod_id.is_none() && mod_version.is_none() {
+                std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");
                 failed_mods.push(jar_file);
             } else {
                 std::fs::remove_file(jar_file.path()).expect("删除原 Jar 文件失败.");
@@ -101,8 +108,10 @@ impl ZhCnInterface {
                 let loader = mod_loader.unwrap();
                 let cache_path = std::path::Path::new("cache");
                 let time = Instant::now();
-                let mut new_mod_version = Some(String::new());
+                let new_mod_version;
                 // 下载Mod
+                // CourseForge API Key
+                let api_key = "";
                 match loader {
                     loader::ModLoader::Fabric => {
                         println!("正在下载 Fabric Mod {}...", old_mod_id);
@@ -115,9 +124,24 @@ impl ZhCnInterface {
                             Err(error) => {
                                 println!("从 Modrinth 拉取失败: {:?}", error);
                                 println!("开始尝试从 CurseForge 拉取...");
-
-                                failed_mods.push(jar_file);
-                                continue;
+                                let result = download_curseforge_mod(
+                                    &old_mod_id,
+                                    &version,
+                                    "fabric",
+                                    cache_path,
+                                    api_key,
+                                );
+                                match result {
+                                    Ok(path) => {
+                                        new_mod_version = get_mod_version(&path).unwrap();
+                                    }
+                                    Err(error) => {
+                                        println!("从 CurseForge 拉取失败: {:?}", error);
+                                        println!("Fabric Mod {} 下载失败, 请手动迁移.", old_mod_id);
+                                        failed_mods.push(jar_file);
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -132,9 +156,24 @@ impl ZhCnInterface {
                             Err(error) => {
                                 println!("从 Modrinth 拉取失败: {:?}", error);
                                 println!("开始尝试从 CurseForge 拉取...");
-                                
-                                failed_mods.push(jar_file);
-                                continue;
+                                let result = download_curseforge_mod(
+                                    &old_mod_id,
+                                    &version,
+                                    "forge",
+                                    cache_path,
+                                    api_key,
+                                );
+                                match result {
+                                    Ok(path) => {
+                                        new_mod_version = get_mod_version(&path).unwrap();
+                                    }
+                                    Err(error) => {
+                                        println!("从 CurseForge 拉取失败: {:?}", error);
+                                        println!("Fabric Mod {} 下载失败, 请手动迁移.", old_mod_id);
+                                        failed_mods.push(jar_file);
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
@@ -149,13 +188,28 @@ impl ZhCnInterface {
                             Err(error) => {
                                 println!("从 Modrinth 拉取失败: {:?}", error);
                                 println!("开始尝试从 CurseForge 拉取...");
-                                
-                                failed_mods.push(jar_file);
-                                continue;
+                                let result = download_curseforge_mod(
+                                    &old_mod_id,
+                                    &version,
+                                    "quilt",
+                                    cache_path,
+                                    api_key,
+                                );
+                                match result {
+                                    Ok(path) => {
+                                        new_mod_version = get_mod_version(&path).unwrap();
+                                    }
+                                    Err(error) => {
+                                        println!("从 CurseForge 拉取失败: {:?}", error);
+                                        println!("Fabric Mod {} 下载失败, 请手动迁移.", old_mod_id);
+                                        failed_mods.push(jar_file);
+                                        continue;
+                                    }
+                                }
                             }
                         }
                     }
-                    _ => {
+                    loader::ModLoader::None => {
                         println!("未知的模组加载器类型: {:?}", loader);
                         failed_mods.push(jar_file);
                         continue;
@@ -174,21 +228,28 @@ impl ZhCnInterface {
                 success_mods.push(jar_file);
             }
         }
-        let elapsed_time = start_time.elapsed();
-        println!("\n版本迁移完成, 共耗时: {:.2?}s", elapsed_time.as_secs_f64());
-        println!(
-            "成功迁移 {} 个 Mod, 失败 {} 个 Mod.",
-            success_mods.len(),
-            failed_mods.len()
-        );
-        if !failed_mods.is_empty() {
-            println!("失败的 Mod 列表如下 (请手动迁移):");
-            for jar_file in &failed_mods {
-                println!(" - {}", jar_file.file_name().to_string_lossy());
+        if let Err(e) = scan::move_files_from_cache_to_current_dir(cache_path) {
+            eprintln!("版本迁移失败: {}", e);
+        } else {
+            let elapsed_time = start_time.elapsed();
+            println!(
+                "\n版本迁移完成, 共耗时: {:.2?}s",
+                elapsed_time.as_secs_f64()
+            );
+            println!(
+                "成功迁移 {} 个 Mod, 失败 {} 个 Mod.",
+                success_mods.len(),
+                failed_mods.len()
+            );
+            if !failed_mods.is_empty() {
+                println!("失败的 Mod 列表如下 (请手动迁移):");
+                for jar_file in &failed_mods {
+                    println!(" - {}", jar_file.file_name().to_string_lossy());
+                }
             }
         }
     }
-    pub fn exit(&self) {
+    fn exit(&self) {
         println!("按任意键退出MiraMigrator...");
         std::io::stdin()
             .read_line(&mut String::new())

@@ -1,12 +1,6 @@
-use reqwest::{
-    blocking::Client,
-    header,
-};
-use std::fs::File;
-use std::path::PathBuf;
-use std::path::Path;
-use std::time::Duration;
-use serde_json::{json, Value};
+use reqwest::{blocking::Client, header};
+use std::{fs::File, path::{Path, PathBuf}, time::Duration};
+use serde_json::Value;
 use sanitize_filename::sanitize;
 
 pub fn download_modrinth_mod(
@@ -15,7 +9,7 @@ pub fn download_modrinth_mod(
     loader: &str,
     output_dir: &Path,
 ) -> Result<PathBuf, Box<dyn std::error::Error>> {
-    // 1. 配置HTTP客户端
+    // 1. 配置 HTTP 客户端
     let mut headers = header::HeaderMap::new();
     headers.insert(header::ACCEPT, header::HeaderValue::from_static("application/json"));
     headers.insert(header::USER_AGENT, header::HeaderValue::from_static("MiraMigrator/1.0"));
@@ -25,12 +19,12 @@ pub fn download_modrinth_mod(
         .timeout(Duration::from_secs(30))
         .build()?;
 
-    // 2. 验证项目存在
+    // 2. 验证项目是否存在
     let project_url = format!("https://api.modrinth.com/v2/project/{}", mod_id);
     let project_res = client.get(&project_url).send()?;
     if !project_res.status().is_success() {
         return Err(format!(
-            "Mod不存在: {} {}",
+            "Mod 不存在: {} {}",
             project_res.status(),
             project_res.text()?
         ).into());
@@ -40,15 +34,15 @@ pub fn download_modrinth_mod(
     let versions_url = format!("https://api.modrinth.com/v2/project/{}/version", mod_id);
     let versions_res = client.get(&versions_url)
         .query(&[
-            ("game_versions", json!(vec![mc_version])),
-            ("loaders", json!(vec![loader])),
+            ("game_versions", mc_version),
+            ("loaders", loader),
         ])
         .send()?;
 
     let versions_text = versions_res.text()?;
     let versions: Vec<Value> = serde_json::from_str(&versions_text).map_err(|e| {
         format!(
-            "JSON解析失败: {}\n响应内容: {}",
+            "JSON 解析失败: {}\n响应内容: {}",
             e,
             versions_text
         )
@@ -67,7 +61,7 @@ pub fn download_modrinth_mod(
         .ok_or("找不到主文件")?;
 
     // 6. 安全下载文件
-    let download_url = file["url"].as_str().ok_or("无效下载URL")?;
+    let download_url = file["url"].as_str().ok_or("无效下载 URL")?;
     let file_name = sanitize(
         file["filename"].as_str().map(|s| s.to_string()).unwrap_or_else(|| {
             format!("{}-{}.jar", mod_id, version["version_number"].as_str().unwrap_or("unknown"))
@@ -79,6 +73,7 @@ pub fn download_modrinth_mod(
 
     Ok(save_path)
 }
+
 // 添加下载文件函数
 fn download_file(client: &Client, url: &str, path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let mut response = client.get(url).send()?;

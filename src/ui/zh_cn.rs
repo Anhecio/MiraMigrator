@@ -101,13 +101,15 @@ impl ZhCnInterface {
                 let loader = mod_loader.unwrap();
                 let cache_path = std::path::Path::new("cache");
                 let time = Instant::now();
+                let mut new_mod_version = Some(String::new());
                 // 下载Mod
                 match loader {
                     loader::ModLoader::Fabric => {
-                        println!("正在下载 Fabric Mod {}-{}...", old_mod_id, old_mod_version);
+                        println!("正在下载 Fabric Mod {}...", old_mod_id);
                         let result = download_modrinth_mod(&old_mod_id, &version, "fabric", cache_path);
                         match result {
                             Ok(path) => {
+                                new_mod_version = get_mod_version(&path).unwrap();
                                 println!("已经存放在 {:?}", path)
                             },
                             Err(error) => {
@@ -116,10 +118,11 @@ impl ZhCnInterface {
                         }
                     }
                     loader::ModLoader::Forge => {
-                        println!("正在下载 Forge Mod {}-{}...", old_mod_id, old_mod_version);
+                        println!("正在下载 Forge Mod {}...", old_mod_id);
                         let result = download_modrinth_mod(&old_mod_id, &version, "forge", cache_path);
                         match result {
                             Ok(path) => {
+                                new_mod_version = get_mod_version(&path).unwrap();
                                 println!("已经存放在 {:?}", path)
                             },
                             Err(error) => {
@@ -128,10 +131,11 @@ impl ZhCnInterface {
                         }
                     }
                     loader::ModLoader::Quilt => {
-                        println!("正在下载 Quilt Mod {}-{}...", old_mod_id, old_mod_version);
+                        println!("正在下载 Quilt Mod {}...", old_mod_id);
                         let result = download_modrinth_mod(&old_mod_id, &version, "quilt", cache_path);
                         match result {
                             Ok(path) => {
+                                new_mod_version = get_mod_version(&path).unwrap();
                                 println!("已经存放在 {:?}", path)
                             },
                             Err(error) => {
@@ -148,7 +152,7 @@ impl ZhCnInterface {
 
 
                 let end_time = time.elapsed();
-                println!("{}-{} => {}-{} 耗时 {:.2?}s", old_mod_id, old_mod_version, old_mod_id, old_mod_version, end_time.as_secs_f64());
+                println!("{}-{} => {}-{} 耗时 {:.2?}s", old_mod_id, old_mod_version, old_mod_id, new_mod_version.unwrap(), end_time.as_secs_f64());
                 success_mods.push(jar_file);
             }
         }
